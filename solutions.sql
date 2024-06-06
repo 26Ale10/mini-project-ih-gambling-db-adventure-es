@@ -104,13 +104,120 @@ WHERE
 GROUP BY T1.product , T2.CurrencyCode , t3.CustomerGroup
 ORDER BY T1.product;
 
+-- Pregunta 07: 
+-- Nuestro equipo VIP ha pedido ver un informe de todos los jugadores independientemente de si han hecho algo en el marco de tiempo completo o no. 
+-- En nuestro ejemplo, es posible que no todos los jugadores hayan estado activos. 
+-- Por favor, escribe una consulta SQL que muestre a todos los jugadores Título, Nombre y Apellido y un resumen de su cantidad de apuesta para el período completo de noviembre.
+
+SELECT 
+    T3.Title AS Titulo,
+    T3.FirstName AS Nombre,
+    T3.LastName AS Apellido,
+    SUM(T1.Bet_amt) AS Total_Apostado
+FROM
+    betting AS T1
+        left JOIN
+    account AS T2 ON T1.AccountNo = T2.AccountNo
+        left JOIN
+    customer AS T3 ON T2.CustId = T3.CustId
+WHERE
+    DATE(T1.betdate) BETWEEN '2012-11-01' AND '2012-11-30'
+GROUP BY T3.Title , T3.FirstName , T3.LastName
+ORDER BY Total_Apostado;
+
+-- Pregunta 08: Nuestros equipos de marketing y CRM quieren medir el número de jugadores que juegan más de un producto. 
+-- ¿Puedes por favor escribir 2 consultas, una que muestre el número de productos por jugador y otra que muestre jugadores que juegan tanto en Sportsbook como en Vegas?
+
+-- Consulta 1:
+SELECT	T3.Title,
+		T3.FirstName,
+		T3.LastName,
+        sub.Total_Productos
+FROM Customer as T3
+    JOIN ( SELECT T2.CustId,
+			count(distinct T1.Product) as Total_Productos
+    FROM Betting as T1
+    JOIN Account as T2
+    ON T1.AccountNo = T2.AccountNo
+    WHERE T1.Product <>  '0'
+    GROUP BY  T2.CustId 
+    HAVING count(distinct T1.Product)>1
+    ) sub
+    ON T3.CustId = sub.CustId
+ORDER BY Total_Productos;
 
 
+-- Consulta 02:
 
+SELECT
+    T3.Title,
+    T3.FirstName,
+    T3.LastName,
+    sub.Total_Productos
+FROM Customer as T3
+JOIN (
+    SELECT 
+        T2.CustId,
+        COUNT(DISTINCT T1.Product) as Total_Productos
+    FROM Betting as T1
+    JOIN Account as T2
+    ON T1.AccountNo = T2.AccountNo
+    WHERE T1.Product IN ('Sportsbook', 'Vegas')
+    GROUP BY T2.CustId
+    HAVING count(distinct T1.Product)>1
+) sub
+ON T3.CustId = sub.CustId
+ORDER BY sub.Total_Productos;
 
-select * from betting;
+-- Pregunta 09: Ahora nuestro equipo de CRM quiere ver a los jugadores que solo juegan un producto, por favor escribe código SQL que muestre a los jugadores que solo juegan en sportsbook, usa bet_amt > 0 como la clave. Muestra cada jugador y la suma de sus apuestas para ambos productos.
+SELECT 
+    T3.Title, 
+    T3.FirstName, 
+    T3.LastName, 
+    sub.Monto_apostado
+FROM
+    Customer AS T3
+        JOIN
+    (SELECT 
+        T2.CustId,
+            COUNT(DISTINCT T1.Product) AS Monto_producto,
+            MAX(T1.Product) AS Producto,
+            SUM(T1.Bet_amt) AS Monto_apostado
+    FROM
+        Betting AS T1
+    JOIN Account AS T2 ON T1.AccountNo = T2.AccountNo
+    WHERE
+        T1.Product <> '0'
+    GROUP BY T2.CustId
+    HAVING COUNT(DISTINCT T1.Product) = 1) sub ON T3.CustId = sub.CustId
+WHERE
+    sub.Producto = 'Sportsbook'
+ORDER BY sub.Monto_producto DESC;
 
-select * from customer;
+-- Pregunta 10: 
+-- La última pregunta requiere que calculemos y determinemos el producto favorito de un jugador. 
+-- Esto se puede determinar por la mayor cantidad de dinero apostado. 
+-- Por favor, escribe una consulta que muestre el producto favorito de cada jugador
 
-select * from account;
-
+WITH ranked AS (
+    SELECT
+        T2.CustId,
+        T3.Title,
+        T3.FirstName,
+        T3.LastName,
+        T1.Product,
+        SUM(T1.Bet_amt) AS Total_Apostado,
+        ROW_NUMBER() OVER (PARTITION BY T2.CustId ORDER BY SUM(T1.Bet_amt) DESC) AS rn
+    FROM Betting AS T1
+    JOIN Account AS T2 ON T1.AccountNo = T2.AccountNo
+    JOIN Customer AS T3 ON T2.CustId = T3.CustId
+    GROUP BY T2.CustId, T3.Title, T3.FirstName, T3.LastName, T1.Product
+)
+SELECT
+    Title,
+    FirstName,
+    LastName,
+    Product,
+    Total_Apostado
+FROM ranked
+WHERE rn = 1; 
