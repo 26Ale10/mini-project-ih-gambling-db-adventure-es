@@ -129,8 +129,7 @@ ORDER BY Total_Apostado;
 -- ¿Puedes por favor escribir 2 consultas, una que muestre el número de productos por jugador y otra que muestre jugadores que juegan tanto en Sportsbook como en Vegas?
 
 -- Consulta 1:
-SELECT	T3.Title,
-		T3.FirstName,
+SELECT	T3.FirstName,
 		T3.LastName,
         sub.Total_Productos
 FROM Customer as T3
