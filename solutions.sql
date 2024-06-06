@@ -149,7 +149,6 @@ ORDER BY Total_Productos;
 -- Consulta 02:
 
 SELECT
-    T3.Title,
     T3.FirstName,
     T3.LastName,
     sub.Total_Productos
